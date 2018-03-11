@@ -20,7 +20,7 @@ The goals / steps of this project are the following:
 [image5]: ./examples/car-bboxes-heatmap.jpg
 [image6]: ./examples/car-labeled-heatmap.jpg
 [image7]: ./examples/output_bboxes.png
-[video1]: ./project_video.mp4
+[video1]: ./test.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
