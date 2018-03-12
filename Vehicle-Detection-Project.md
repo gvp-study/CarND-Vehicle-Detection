@@ -140,6 +140,7 @@ Here's a [link to my video result](./test.mp4)
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
 I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  The threshold is the key factor in filtering out the false positives in the frames. I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the thresholded heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to bound the area of each blob detected.  
+When dealing with a continuous stream of images from a video, I wanted to use a global variable for the heatmap 'sum_heat' to hold on to the car detections from the previous frames. I could then threshold the summed heatmap and label the resulting 'sum_heat'. This could eliminate false positives. I was unable to implement this for the videos for now.
 
 Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
 
@@ -148,7 +149,7 @@ Here's an example result showing the heatmap from a series of frames of video, t
 ![alt text][image6]
 
 ### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames. The resulting bounding boxes drawn on the last frame is also shown.
-Note that the difference in the number and position of the windows which detected cars in the frames. In these cases it would be best to integrate the heatmap over several frames before labeling and then bounding the resulting summed labeled image. The result is as shown below.
+Note that the difference in the number and position of the windows which detected cars in the frames. In these cases it would be best to integrate the heatmap over several frames before labeling and then bounding the resulting summed labeled image. The result is as shown below. Note that the resulting heatmap and bounding box envelopes the white car well.
 
 ![alt text][image7]
 
