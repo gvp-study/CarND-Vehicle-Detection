@@ -18,8 +18,8 @@ The goals / steps of this project are the following:
 [image3]: ./examples/slide-search-windows.jpg
 [image4]: ./examples/car-detect-slide-windows.jpg
 [image5]: ./examples/car-bboxes-heatmap.jpg
-[image6]: ./examples/car-labeled-heatmap.jpg
-[image7]: ./examples/output_bboxes.png
+[image6]: ./examples/six-frames-heatmap.jpg
+[image7]: ./examples/sum-of-six-frames-heatmap.jpg
 [video1]: ./test.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
@@ -80,12 +80,14 @@ I trained a linear SVM using the following parameters.
 * hist_feat = True
 * hog_feat = True
 
-For 4000 samples
-134.80552291870117 Seconds to compute features...
+I tried to run the whole set of training data on my IMac and it failed due to lack of memory or CPU. So I was forced to use only a set of 4000 samples from the 8000+ training data. This might affect the final results.
+For 4000 samples it took around 98 seconds to train with 99% accuracy as shown below.
+
+97.94166016578674 Seconds to compute features...
 Using: 9 orientations 8 pixels per cell 2 cell per block 32 histogram bins, and (32, 32) spatial sampling
 Feature vector length 8460
-14.71 Seconds to train SVC...
-Test Accuracy of the SVC =  0.9875
+17.61 Seconds to train SVC...
+Test Accuracy of the SVC =  0.9938
 
 I used the default values for all the parameters for classifier using the LinearSVC() function.
 
@@ -102,9 +104,14 @@ I tried a search window size of (64x64) and (32x32) which increased the number o
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
-Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
-he code to do this lies in the eighth code cell in the notebook. The function that generates a list of sliding windows over the 256 high strip in every image is called slide_window. This function takes in the image and the bounds of the search and the search window size (96x96) and an overlap of 50%. The actual function that predicts the cars in the image is using the classifier is called search_windows. This function takes as input the image and the list of windows to check for cars. It also takes all the parameters that were found to be best for the classifying from the earlier tests.
+Ultimately I searched on two values of scale (1.5 and 2.0) using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector. I settled on a scale of 1.5 which provided a nice result shown in the test images shown below.
+
+The code to do this lies in the eighth code cell in the notebook. The function that generates a list of sliding windows over the 256 high strip in every image is called slide_window. This function takes in the image and the bounds of the search and the search window size (96x96) and an overlap of 50%.
+
+The key function that predicts the cars in the image is using the classifier is called search_windows. This function takes as input the image and the list of windows to check for cars. It also takes all the parameters that were found to be best for the classifying from the earlier tests.
+
 I tried a search window size of (64x64) and (32x32) which increased the number of search windows and the time taken to process the image. I finally settled on a search window size of (96x96) which seemed to detect the cars better.
+
 The results are shown in the figure below. The green windows are all (100 in number) the windows being searched and the thick blue windows show the windows with cars detected in them. Note that the search correctly finds all but one of the cars in the six test images. It misses the white car in the first image.
 
 
@@ -114,12 +121,25 @@ The results are shown in the figure below. The green windows are all (100 in num
 ### Video Implementation
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
+The processing of the video is accomplished using the pipeline function called process_image. This function finds the cars in a given image and then labels the resulting heatmap and then draws distinct bounding boxes around the segmented regions in the labeled heatmap image. The process_image is then fed to the video class member function fl_image and the output is then saved to test.mp4.
+The main 3 functions I use in the process_image are find_cars, apply_threshold, label and draw_labeled_bboxes as shown below. The apply_threshold with a threshold of 1 eliminates some false positives.
+```python
+def process_image(img):
+
+    out_img, heat_map = find_cars(img, scale)
+    heat_map = apply_threshold(heat_map, 1)
+    labels = label(heat_map)
+    # Draw bounding boxes on a copy of the image
+    draw_img = draw_labeled_bboxes(np.copy(img), labels)
+    return draw_img
+```
+
 Here's a [link to my video result](./test.mp4)
 
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
+I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  The threshold is the key factor in filtering out the false positives in the frames. I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the thresholded heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to bound the area of each blob detected.  
 
 Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
 
@@ -127,12 +147,8 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 ![alt text][image5]
 
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
-
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
+### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames. The resulting bounding boxes drawn on the last frame is also shown.
 ![alt text][image7]
-
 
 
 ---
@@ -140,5 +156,8 @@ Here's an example result showing the heatmap from a series of frames of video, t
 ### Discussion
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+
+Due to lack of time, I was unable to implement the enhancements suggested by Ryan Keene. I hope to complete this project in the future if time permits.
+The main disadvantage of the simplistic approach I have used is that there is no smoothing of the vehicle detected from frame to frame. This will result in a noisy detection and will prevent the tracking of detected cars when they get occluded by another vehicle that passes in between the camera and the original tracked vehicle.
 
 Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
