@@ -26,14 +26,14 @@ The goals / steps of this project are the following:
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.
 
 All the code for this project has been obtained from the example code in the course and also from watching Ryan Keene's video referred to in it. The resulting code is in this python notebook:
-[Here](https://github.com/udacity/CarND-Vehicle-Detection/blob/master/Vehicle-Detection.ipynb)
+[Here](https://github.com/gvp-study/CarND-Vehicle-Detection/blob/master/Vehicle-Detection.ipynb)
 ---
 
 ### Histogram of Oriented Gradients (HOG)
 
 #### 1. Explain how (and identify where in your code) you extracted HOG features from the training images.
 
-The code for this step is contained in the third code cell of the IPython notebook.  
+The code for this step starts from the third code cell of the IPython notebook.  
 
 I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an example of a random set of eight  `vehicle` and eight `non-vehicle` classes is shown below. I noted the variety of both the cars and noncars in the images. Obviously, the examples differ in color, lighting, shape and where they appear in the image. I also noted that all these images were 64x64 color images.
 
@@ -94,7 +94,7 @@ I used the default values for all the parameters for classifier when using the L
 
 ### Sliding Window Search
 
-#### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
+#### 4. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
 
 From the FAQ video, I confirmed that most cars seem to lie in a 256 pixel strip between the 400 and 656 rows. I restricted the windows to remain within these bounds while sliding. I also tested scales of 1, 1.5 and 2.0 and settled on 1.5.
@@ -102,7 +102,7 @@ I tried a search window size of ``(64x64)`` and ``(32x32)`` which increased the 
 
 ![alt text][image3]
 
-#### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
+#### 5. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
 Ultimately I searched on two values of scale (1.5 and 2.0) using `YCrCb` 3-channel HOG features plus spatially binned color and histograms of color in the feature vector. I settled on a scale of 1.5 which provided a nice result shown in the test images shown below.
 
@@ -118,28 +118,10 @@ The results are shown in the figure below. The green windows are all (100 in num
 ![alt text][image4]
 ---
 
-### Video Implementation
+#### 6. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
-The processing of the video is accomplished using the pipeline function called process_image. This function finds the cars in a given image and then labels the resulting heatmap and then draws distinct bounding boxes around the segmented regions in the labeled heatmap image. The process_image is then fed to the video class member function fl_image and the output is then saved to test.mp4.
-The main 3 functions I use in the process_image are find_cars, apply_threshold, label and draw_labeled_bboxes as shown below. The apply_threshold with a threshold of 1 eliminates some false positives.
-```python
-def process_image(img):
-
-    out_img, heat_map = find_cars(img, scale)
-    heat_map = apply_threshold(heat_map, 1)
-    labels = label(heat_map)
-    # Draw bounding boxes on a copy of the image
-    draw_img = draw_labeled_bboxes(np.copy(img), labels)
-    return draw_img
-```
-
-Here's a [link to my video result](./test.mp4)
-
-
-#### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
-
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  The threshold is the key factor in filtering out the false positives in the frames. I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the thresholded heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to bound the area of each blob detected.  
+I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  The threshold is the key factor in filtering out the false positives in the frames. I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the thresholded heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to bound the area of each blob detected. The result for the test images is shown below.
+![alt text][image5]
 When dealing with a continuous stream of images from a video, I wanted to use a global variable for the heatmap 'sum_heat' to hold on to the car detections from the previous frames. I could then threshold the summed heatmap and label the resulting 'sum_heat'. This could eliminate false positives. I was unable to implement this for the videos for now.
 
 Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
@@ -154,11 +136,46 @@ Note that the difference in the number and position of the windows which detecte
 ![alt text][image7]
 
 
+### Video Implementation
+
+#### 7. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
+The processing of the video is accomplished using the pipeline function called process_image. This function finds the cars in a given image and then labels the resulting heatmap and then draws distinct bounding boxes around the segmented regions in the labeled heatmap image. The process_image is then fed to the video class member function fl_image and the output is then saved to test.mp4.
+The main 3 functions I use in the process_image are find_cars_video, apply_threshold, label and draw_labeled_bboxes as shown below. The apply_threshold with a threshold of 5 eliminates some false positives.
+
+One other thing I did to reduce false positives was to keep an array of six heatmaps. These heatmaps are filled cyclically from the frames and hold a history of the past five frames. The sum_heat heatmap sums these six heatmaps and then threshold them at a high threshold of 5. This eliminates most of the false positives. I also noted that the false positive that show up at around second 40+ in the project_video.mp4 is due to the fact that the classifier sees a truck in the opposite lane seen past the left guard rail.
+
+```python
+# Hold the heat map from 6 frames.
+sum_heat = np.zeros_like(last_img[:,:,0]).astype(np.float)
+heat_array = [np.copy(sum_heat), np.copy(sum_heat), np.copy(sum_heat), np.copy(sum_heat), np.copy(sum_heat),np.copy(sum_heat) ]
+img_count = 0
+def process_image(img):
+    global sum_heat
+    global img_count
+    global heat_array
+    out_img, heat_map, img_boxes = find_cars_video(img, scale)
+    heat_array[img_count % 6] = heat_map
+    sum_heat = np.zeros_like(last_img[:,:,0]).astype(np.float)
+    for i in range(6):
+        sum_heat = sum_heat + heat_array[i]
+    # Threshold by at least 3
+    sum_heat = apply_threshold(sum_heat, 5)
+    labels = label(sum_heat)
+    # Draw bounding boxes on a copy of the image
+    draw_img = draw_labeled_bboxes(np.copy(img), labels)
+    img_count += 1
+    return draw_img
+
+```
+
+Here's a [link to my video result](./test.mp4)
+
+
 ---
 
 ### Discussion
 
-#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+#### 8. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
 I was unable to implement the enhancements suggested by Ryan Keene. I hope to complete this project in the future if time permits.
-The main disadvantage of the simplistic approach I have used is that there is no smoothing of the vehicle detected from frame to frame. This will result in a noisy detection and will prevent the tracking of detected cars when they get occluded by another vehicle that passes in between the camera and the original tracked vehicle.
+The main disadvantage of the simplistic approach I have used is that there is only a simple averaging of the heatmap of the vehicle detected from frame to frame. This will result in a noisy detection and will prevent the tracking of detected cars when they get occluded by another vehicle that passes in between the camera and the original tracked vehicle. This can be improved by tracking the actual bounding boxes between frames and tracking its velocity in pixel space.
