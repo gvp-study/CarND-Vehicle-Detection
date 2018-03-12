@@ -23,9 +23,10 @@ The goals / steps of this project are the following:
 [video1]: ./test.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
-### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
+### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.
 
-All the code for this project has been obtained from the example code in the course and also from watching Ryan Keene's video referred to in it. The resulting code is in this python notebook: [Here](https://github.com/udacity/CarND-Vehicle-Detection/blob/master/Vehicle-Detection.ipynb)
+All the code for this project has been obtained from the example code in the course and also from watching Ryan Keene's video referred to in it. The resulting code is in this python notebook:
+[Here](https://github.com/udacity/CarND-Vehicle-Detection/blob/master/Vehicle-Detection.ipynb)
 ---
 
 ### Histogram of Oriented Gradients (HOG)
@@ -51,7 +52,7 @@ I then collected all the functions related to this project in the fourth cell fo
 
 I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
 
-The first row of the figure below shows the result of using the `RGB` color space and HOG parameters of `orientations=6`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`. The second row shows the first channel of the (32x32) resized image which bins the red color. The third row shows the Y channel of a YCrCb representation of the image. The fourth row shows the corresponding images related to Cr channel of the images.
+The first row of the figure below shows the result of using the `RGB` color space and HOG parameters of `orientations=6`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`. The second row shows the first channel of the `(32x32)` resized image which bins the red color. The third row shows the `Y` channel of a `YCrCb` representation of the image. The fourth row shows the corresponding images related to `Cr` channel of the images.
 
 
 ![alt text][image2]
@@ -66,7 +67,7 @@ It also seemed that using 'ALL' the channels for HOG transform instead of choosi
 
 #### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
-I used the sixth code cell in the notebook to do this.
+I used the sixth code cell in the notebook to do this. I used all three feature lists (HOG features, color histogram and spatial features) for classifying the image windows.
 
 I trained a linear SVM using the following parameters.
 * colorspace = 'YCrCb'
@@ -81,7 +82,7 @@ I trained a linear SVM using the following parameters.
 * hog_feat = True
 
 I tried to run the whole set of training data on my IMac and it failed due to lack of memory or CPU. So I was forced to use only a set of 4000 samples from the 8000+ training data. This might affect the final results.
-For 4000 samples it took around 98 seconds to train with 99% accuracy as shown below.
+Despite only using 4000 samples, it took around 98 seconds to train with 99% accuracy as shown below.
 
 97.94166016578674 Seconds to compute features...
 Using: 9 orientations 8 pixels per cell 2 cell per block 32 histogram bins, and (32, 32) spatial sampling
@@ -89,22 +90,21 @@ Feature vector length 8460
 17.61 Seconds to train SVC...
 Test Accuracy of the SVC =  0.9938
 
-I used the default values for all the parameters for classifier using the LinearSVC() function.
+I used the default values for all the parameters for classifier when using the LinearSVC() function.
 
 ### Sliding Window Search
 
 #### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
 
 From the FAQ video, I confirmed that most cars seem to lie in a 256 pixel strip between the 400 and 656 rows. I restricted the windows to remain within these bounds while sliding. I also tested scales of 1, 1.5 and 2.0 and settled on 1.5.
-I tried a search window size of (64x64) and (32x32) which increased the number of search windows and the time taken to process the image. I finally settled on a search window size of (96x96) which seemed to detect the cars better.
+I tried a search window size of ``(64x64)`` and ``(32x32)`` which increased the number of search windows and the time taken to process the image. I finally settled on a search window size of ``(96x96)`` which seemed to detect the cars better. The larger size windows also saved on the processing time considerably.
 
 ![alt text][image3]
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
-Ultimately I searched on two values of scale (1.5 and 2.0) using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector. I settled on a scale of 1.5 which provided a nice result shown in the test images shown below.
+Ultimately I searched on two values of scale (1.5 and 2.0) using `YCrCb` 3-channel HOG features plus spatially binned color and histograms of color in the feature vector. I settled on a scale of 1.5 which provided a nice result shown in the test images shown below.
 
 The code to do this lies in the eighth code cell in the notebook. The function that generates a list of sliding windows over the 256 high strip in every image is called slide_window. This function takes in the image and the bounds of the search and the search window size (96x96) and an overlap of 50%.
 
@@ -145,9 +145,11 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 ### Here are six frames and their corresponding heatmaps:
 
-![alt text][image5]
+![alt text][image6]
 
 ### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames. The resulting bounding boxes drawn on the last frame is also shown.
+Note that the difference in the number and position of the windows which detected cars in the frames. In these cases it would be best to integrate the heatmap over several frames before labeling and then bounding the resulting summed labeled image. The result is as shown below.
+
 ![alt text][image7]
 
 
@@ -157,7 +159,5 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Due to lack of time, I was unable to implement the enhancements suggested by Ryan Keene. I hope to complete this project in the future if time permits.
+I was unable to implement the enhancements suggested by Ryan Keene. I hope to complete this project in the future if time permits.
 The main disadvantage of the simplistic approach I have used is that there is no smoothing of the vehicle detected from frame to frame. This will result in a noisy detection and will prevent the tracking of detected cars when they get occluded by another vehicle that passes in between the camera and the original tracked vehicle.
-
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
